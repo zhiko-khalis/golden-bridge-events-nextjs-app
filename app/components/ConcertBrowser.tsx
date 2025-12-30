@@ -32,37 +32,39 @@ export function ConcertBrowser({ onSelectConcert }: ConcertBrowserProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div 
-        className="relative py-16 px-4 bg-black text-white"
-        style={{
-          backgroundImage: 'url(/poster-zanaaaaa.png)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      >
-        {/* Overlay for readability */}
-        {/* <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-background/80"></div> */}
-        
-        {/* Content */}
+      <div className="relative py-8 md:py-4 px-4 bg-black text-white">
         <div className="relative z-10 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 mb-4">
-            <Music className="w-10 h-10 text-white" />
-            <h1>Golden Bridge Events</h1>
-          </div>
-          <p className="text-xl text-white/70 mb-8">
-            Discover and book tickets for the best live music events
-          </p>
-          
-          {/* Search Bar */}
-          <div className="relative max-w-2xl">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-5 h-5" />
-            <Input
-              placeholder="Search concerts, artists, or locations..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-12 text-black"
-            />
+          <div className="flex flex-col md:flex-row items-center md:items-center gap-6 md:gap-12">
+            {/* Text Content */}
+            <div className="flex-1 w-full md:w-auto order-2 md:order-1">
+              <div className="flex items-center gap-3 mb-4">
+                <Music className="w-8 h-8 md:w-10 md:h-10 text-white" />
+                <h1 className="text-2xl md:text-4xl lg:text-5xl">Golden Bridge Events</h1>
+              </div>
+              <p className="text-base md:text-xl text-white/70 mb-6 md:mb-8">
+                Discover and book tickets for the best live music events
+              </p>
+              
+              {/* Search Bar */}
+              <div className="relative w-full max-w-2xl">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-5 h-5" />
+                <Input
+                  placeholder="Search concerts, artists, or locations..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-12 text-black"
+                />
+              </div>
+            </div>
+
+            {/* Image */}
+            <div className="flex-1 w-full md:w-auto flex items-center justify-center md:justify-end md:items-center order-1 md:order-2">
+              <img 
+                src="/GOLDEN BRIDGE OFFICIAL LOGO.svg" 
+                alt="Golden Bridge Events Logo"
+                className="w-full max-w-[200px] md:max-w-[250px] lg:max-w-[300px] h-auto object-contain"
+              />
+            </div>
           </div>
         </div>
       </div>

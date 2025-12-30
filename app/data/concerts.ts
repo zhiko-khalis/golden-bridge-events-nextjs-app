@@ -3,6 +3,35 @@ import { Concert } from '../types/concert';
 export const concerts: Concert[] = [
   {
     id: '1',
+    name: 'Jazz Under the Stars',
+    artist: 'Midnight Quartet',
+    date: '2024-08-02',
+    time: '20:00',
+    venue: 'Blue Note Jazz Club',
+    location: 'Chicago, IL',
+    description: 'Experience an intimate evening of smooth jazz with the renowned Midnight Quartet. This special performance features classic jazz standards and original compositions in an elegant setting.',
+    image: 'https://images.unsplash.com/photo-1710951403141-353d4e5c7cbf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxqYXp6JTIwbXVzaWNpYW4lMjBwZXJmb3JtYW5jZXxlbnwxfHx8fDE3NjY0MTExNzl8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    genre: 'Jazz',
+    ticketTypes: [
+      {
+        id: 't4',
+        name: 'Standard Table',
+        price: 78600,
+        available: 80,
+        description: 'Table seating for 2-4 guests'
+      },
+      {
+        id: 't5',
+        name: 'Premium Table',
+        price: 157200,
+        available: 30,
+        description: 'Front row table seating'
+      }
+    ]
+  },
+
+  {
+    id: '2',
     name: 'Masoud Sadeghloo Concert',
     artist: 'Live in Concert',
     date: '2025-12-25',
@@ -37,34 +66,7 @@ export const concerts: Concert[] = [
       }
     ]
   },
-  {
-    id: '2',
-    name: 'Jazz Under the Stars',
-    artist: 'Midnight Quartet',
-    date: '2024-08-02',
-    time: '20:00',
-    venue: 'Blue Note Jazz Club',
-    location: 'Chicago, IL',
-    description: 'Experience an intimate evening of smooth jazz with the renowned Midnight Quartet. This special performance features classic jazz standards and original compositions in an elegant setting.',
-    image: 'https://images.unsplash.com/photo-1710951403141-353d4e5c7cbf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxqYXp6JTIwbXVzaWNpYW4lMjBwZXJmb3JtYW5jZXxlbnwxfHx8fDE3NjY0MTExNzl8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    genre: 'Jazz',
-    ticketTypes: [
-      {
-        id: 't4',
-        name: 'Standard Table',
-        price: 78600,
-        available: 80,
-        description: 'Table seating for 2-4 guests'
-      },
-      {
-        id: 't5',
-        name: 'Premium Table',
-        price: 157200,
-        available: 30,
-        description: 'Front row table seating'
-      }
-    ]
-  },
+  
   {
     id: '3',
     name: 'Electronic Dreams Festival',

@@ -5,6 +5,8 @@ import { Concert, SelectedTicket, TicketType } from '../types/concert';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { ArrowLeft, Plus, Minus, ShoppingCart } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 
 interface TicketSelectionProps {
   concert: Concert;
@@ -13,7 +15,9 @@ interface TicketSelectionProps {
 }
 
 export function TicketSelection({ concert, onBack, onContinue }: TicketSelectionProps) {
+  const { isAdmin } = useAuth();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
   const updateQuantity = (ticketId: string, change: number) => {
     setQuantities(prev => {
@@ -44,6 +48,12 @@ export function TicketSelection({ concert, onBack, onContinue }: TicketSelection
 
   const handleContinue = () => {
     if (selectedTickets.length > 0) {
+      // If user is not admin, show "Coming soon" message
+      if (!isAdmin) {
+        setShowComingSoon(true);
+        return;
+      }
+      // Admin users can proceed normally
       onContinue(selectedTickets);
     }
   };
@@ -186,6 +196,19 @@ export function TicketSelection({ concert, onBack, onContinue }: TicketSelection
           </div>
         </div>
       </div>
+
+      {/* Coming Soon Dialog */}
+      <Dialog open={showComingSoon} onOpenChange={setShowComingSoon}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Coming Soon</DialogTitle>
+            <DialogDescription>
+              Online booking is currently unavailable while we prepare our database. 
+              Please check back soon!
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

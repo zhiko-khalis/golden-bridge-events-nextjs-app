@@ -10,6 +10,7 @@ interface SalesContextType {
   getSalesReport: () => SalesReport;
   getSalesByLocation: (location: string) => TicketSale[];
   refreshSales: () => void;
+  clearSales: () => void;
 }
 
 const SalesContext = createContext<SalesContextType | undefined>(undefined);
@@ -193,6 +194,40 @@ export function SalesProvider({ children }: { children: ReactNode }) {
     };
   }, [sales]);
 
+  const clearSales = useCallback(() => {
+    setSales([]);
+    if (typeof window !== 'undefined') {
+      // Clear sales data
+      localStorage.removeItem(STORAGE_KEY);
+      
+      // Clear all reserved seats for all venues
+      // Find all localStorage keys that match the pattern reservedSeats_*
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('reservedSeats_')) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      // Remove all reserved seat keys
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+      });
+      
+      // Dispatch custom events to notify other components
+      window.dispatchEvent(new CustomEvent('salesUpdated', {
+        detail: { sales: [] }
+      }));
+      
+      // Dispatch event to notify seat selection components that seats have been cleared
+      // This will trigger a refresh of reserved seats in all venue layouts
+      window.dispatchEvent(new CustomEvent('seatsCleared', {
+        detail: { cleared: true }
+      }));
+    }
+  }, []);
+
   return (
     <SalesContext.Provider
       value={{
@@ -200,7 +235,8 @@ export function SalesProvider({ children }: { children: ReactNode }) {
         addSale,
         getSalesReport,
         getSalesByLocation,
-        refreshSales
+        refreshSales,
+        clearSales
       }}
     >
       {children}

@@ -17,6 +17,7 @@ import { AdminNav } from './components/AdminNav';
 import { SalesDisplay } from './components/SalesDisplay';
 import { useSales } from './contexts/SalesContext';
 import { TicketSale } from './types/sales';
+import { getVenueLayout } from './data/venueLayouts';
 
 type BookingStep = 
   | 'browse' 
@@ -190,29 +191,27 @@ export default function App() {
         timerIntervalRef.current = null;
       }
       
-      // Reserve seats for admin (cash payment)
-      if (bookingData.selectedSeats && bookingData.selectedSeats.length > 0) {
-        if (typeof window !== 'undefined') {
-          import('./data/venueLayouts').then(({ getVenueLayout }) => {
-            const venueLayout = getVenueLayout(bookingData.concert!.venue);
-            const storageKey = `reservedSeats_${venueLayout.venueId}`;
-            
-            const reserved = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
-            bookingData.selectedSeats!.forEach(selectedSeat => {
-              if (!reserved.includes(selectedSeat.seat.id)) {
-                reserved.push(selectedSeat.seat.id);
-              }
-            });
-            sessionStorage.setItem(storageKey, JSON.stringify(reserved));
-            
-            window.dispatchEvent(new CustomEvent('seatsReserved', { 
-              detail: { 
-                seatIds: bookingData.selectedSeats!.map(s => s.seat.id),
-                venueId: venueLayout.venueId
-              } 
-            }));
-          });
-        }
+      // Reserve seats for admin (cash payment) - save to localStorage permanently
+      // Use tickets parameter which contains the seat information
+      const seatsToReserve = tickets.filter(ticket => ticket.seat).map(ticket => ticket.seat!);
+      if (seatsToReserve.length > 0 && typeof window !== 'undefined') {
+        const venueLayout = getVenueLayout(bookingData.concert.venue);
+        const storageKey = `reservedSeats_${venueLayout.venueId}`;
+        
+        const reserved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        seatsToReserve.forEach(seat => {
+          if (!reserved.includes(seat.id)) {
+            reserved.push(seat.id);
+          }
+        });
+        localStorage.setItem(storageKey, JSON.stringify(reserved));
+        
+        window.dispatchEvent(new CustomEvent('seatsReserved', { 
+          detail: { 
+            seatIds: seatsToReserve.map(s => s.id),
+            venueId: venueLayout.venueId
+          } 
+        }));
       }
 
       // Record sale for admin (cash payment)

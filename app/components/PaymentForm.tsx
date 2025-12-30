@@ -111,21 +111,21 @@ export function PaymentForm({
     
     // Simulate payment processing
     setTimeout(() => {
-      // Reserve selected seats after payment
+      // Reserve selected seats after payment - save to localStorage permanently
       if (selectedSeats.length > 0) {
         // In a real app, this would be an API call to reserve seats
         if (typeof window !== 'undefined') {
           const venueLayout = getVenueLayout(concert.venue);
           const storageKey = `reservedSeats_${venueLayout.venueId}`;
           
-          // Store in sessionStorage for demo purposes (per venue)
-          const reserved = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+          // Store in localStorage permanently (per venue)
+          const reserved = JSON.parse(localStorage.getItem(storageKey) || '[]');
           selectedSeats.forEach(selectedSeat => {
             if (!reserved.includes(selectedSeat.seat.id)) {
               reserved.push(selectedSeat.seat.id);
             }
           });
-          sessionStorage.setItem(storageKey, JSON.stringify(reserved));
+          localStorage.setItem(storageKey, JSON.stringify(reserved));
           
           // Dispatch custom event to notify other components
           window.dispatchEvent(new CustomEvent('seatsReserved', { 

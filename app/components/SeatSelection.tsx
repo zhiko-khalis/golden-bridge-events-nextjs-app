@@ -8,7 +8,10 @@ import { Card, CardContent } from './ui/card';
 import { ArrowLeft, ShoppingCart, X, Info } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { useAuth } from '../contexts/AuthContext';
+import { useSales } from '../contexts/SalesContext';
+import { TicketSale } from '../types/sales';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 
 interface SeatSelectionProps {
   concert: Concert;
@@ -16,15 +19,15 @@ interface SeatSelectionProps {
   onContinue: (selectedSeats: SelectedSeat[]) => void;
 }
 
-// Get reserved seats from sessionStorage (in a real app, this would be from a backend/API)
+// Get reserved seats from localStorage and sales data
 // Seats are stored per venue to avoid conflicts
-function getReservedSeats(layout: VenueLayout): Set<string> {
+function getReservedSeats(layout: VenueLayout, sales: any[]): Set<string> {
   const reserved = new Set<string>();
   const storageKey = `reservedSeats_${layout.venueId}`;
   
-  // Get from sessionStorage if available
+  // Get from localStorage (permanent storage)
   if (typeof window !== 'undefined') {
-    const stored = sessionStorage.getItem(storageKey);
+    const stored = localStorage.getItem(storageKey);
     if (stored) {
       try {
         const seatIds = JSON.parse(stored);
@@ -33,6 +36,18 @@ function getReservedSeats(layout: VenueLayout): Set<string> {
         console.error('Error parsing reserved seats:', e);
       }
     }
+    
+    // Also extract seat IDs from sales data (tickets with seats)
+    // This ensures seats from completed bookings are always marked as reserved
+    sales.forEach(sale => {
+      if (sale.tickets && Array.isArray(sale.tickets)) {
+        sale.tickets.forEach((ticket: any) => {
+          if (ticket.seat && ticket.seat.id) {
+            reserved.add(ticket.seat.id);
+          }
+        });
+      }
+    });
   }
   
   return reserved;
@@ -40,42 +55,57 @@ function getReservedSeats(layout: VenueLayout): Set<string> {
 
 export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProps) {
   const { isAdmin } = useAuth();
+  const { sales } = useSales();
   const venueLayout = useMemo(() => getVenueLayout(concert.venue), [concert.venue]);
   const [selectedSeats, setSelectedSeats] = useState<Map<string, Seat>>(new Map());
   const [hoveredSeat, setHoveredSeat] = useState<Seat | null>(null);
   const [reservedSeats, setReservedSeats] = useState<Set<string>>(new Set());
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
-  // Initialize reserved seats on mount and update when layout changes
+  // Initialize reserved seats on mount and update when layout or sales change
   useEffect(() => {
-    setReservedSeats(getReservedSeats(venueLayout));
-  }, [venueLayout]);
+    setReservedSeats(getReservedSeats(venueLayout, sales));
+  }, [venueLayout, sales]);
 
-  // Listen for storage changes and custom events to update reserved seats in real-time
+  // Listen for storage changes, sales updates, and custom events to update reserved seats in real-time
   useEffect(() => {
     const storageKey = `reservedSeats_${venueLayout.venueId}`;
     
     const handleStorageChange = () => {
-      setReservedSeats(getReservedSeats(venueLayout));
+      setReservedSeats(getReservedSeats(venueLayout, sales));
     };
 
     const handleSeatsReserved = (event: CustomEvent) => {
       // Only update if the reservation is for this venue
       if (event.detail?.venueId === venueLayout.venueId) {
-        setReservedSeats(getReservedSeats(venueLayout));
+        setReservedSeats(getReservedSeats(venueLayout, sales));
       }
+    };
+
+    const handleSalesUpdate = () => {
+      setReservedSeats(getReservedSeats(venueLayout, sales));
+    };
+
+    const handleSeatsCleared = () => {
+      // When seats are cleared, immediately refresh reserved seats
+      setReservedSeats(getReservedSeats(venueLayout, sales));
     };
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('seatsReserved', handleSeatsReserved as EventListener);
+    window.addEventListener('salesUpdated', handleSalesUpdate as EventListener);
+    window.addEventListener('seatsCleared', handleSeatsCleared as EventListener);
     // Also check periodically for changes (since storage event only fires in other tabs)
     const interval = setInterval(handleStorageChange, 1000);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('seatsReserved', handleSeatsReserved as EventListener);
+      window.removeEventListener('salesUpdated', handleSalesUpdate as EventListener);
+      window.removeEventListener('seatsCleared', handleSeatsCleared as EventListener);
       clearInterval(interval);
     };
-  }, [venueLayout]);
+  }, [venueLayout, sales]);
 
   // Generate seat object from seat ID
   const getSeatFromId = (seatId: string): Seat => {
@@ -141,6 +171,12 @@ export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProp
   const handleContinue = () => {
     const seatsData = getSelectedSeatsData();
     if (seatsData.length > 0) {
+      // If user is not admin, show "Coming soon" message
+      if (!isAdmin) {
+        setShowComingSoon(true);
+        return;
+      }
+      // Admin users can proceed normally
       onContinue(seatsData);
     }
   };
@@ -158,9 +194,9 @@ export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProp
 
     let seatColor = 'bg-green-500 hover:bg-green-600 text-white'; // Available - green by default
     if (seat.isReserved || !seat.isAvailable) {
-      // Admins can still select reserved seats, so show different color
+      // Reserved seats are always red for all users (permanent reservation)
       seatColor = isAdmin 
-        ? 'bg-orange-500 hover:bg-orange-600 text-white cursor-pointer' // Reserved but selectable for admin
+        ? 'bg-red-500 hover:bg-red-600 text-white cursor-pointer' // Reserved - red, but admin can still select
         : 'bg-red-500 cursor-not-allowed text-white'; // Reserved - red for regular users
     } else if (isSelected) {
       seatColor = 'bg-blue-500 hover:bg-blue-600 text-white'; // Selected - blue
@@ -175,7 +211,7 @@ export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProp
     const seatButton = (
       <button
         key={seatId}
-        className={`w-[16px] h-[16px] rounded text-xs font-medium transition-colors ${seatColor} ${
+        className={`w-[12px] h-[12px] sm:w-[16px] sm:h-[16px] rounded text-[10px] sm:text-xs font-medium transition-colors ${seatColor} ${
           (!isAdmin && (seat.isReserved || !seat.isAvailable)) ? '' : 'cursor-pointer'
         }`}
         onClick={() => handleSeatClick(seatId)}
@@ -285,14 +321,8 @@ export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProp
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded bg-red-500"></div>
-                <span>Reserved {isAdmin ? '(Admin can override)' : ''}</span>
+                <span>Reserved {isAdmin ? '(Admin can still select)' : ''}</span>
               </div>
-              {isAdmin && (
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded bg-orange-500"></div>
-                  <span>Reserved (Admin Override)</span>
-                </div>
-              )}
             </div>
 
             {/* Venue Name */}
@@ -438,6 +468,19 @@ export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProp
           </div>
         )}
       </div>
+
+      {/* Coming Soon Dialog */}
+      <Dialog open={showComingSoon} onOpenChange={setShowComingSoon}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Coming Soon</DialogTitle>
+            <DialogDescription>
+              Online booking is currently unavailable while we prepare our database. 
+              Please check back soon!
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

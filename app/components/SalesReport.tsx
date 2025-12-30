@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSales } from '../contexts/SalesContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -12,10 +12,21 @@ import {
   DollarSign, 
   Ticket,
   TrendingUp,
-  X
+  X,
+  RotateCcw
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 
 interface SalesReportProps {
   open: boolean;
@@ -23,7 +34,8 @@ interface SalesReportProps {
 }
 
 export function SalesReport({ open, onClose }: SalesReportProps) {
-  const { sales, getSalesReport, refreshSales } = useSales();
+  const { sales, getSalesReport, refreshSales, clearSales } = useSales();
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   // Refresh sales when dialog opens
   useEffect(() => {
@@ -108,6 +120,12 @@ export function SalesReport({ open, onClose }: SalesReportProps) {
     URL.revokeObjectURL(url);
   };
 
+  const handleReset = () => {
+    clearSales();
+    setShowResetDialog(false);
+    refreshSales();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-none sm:max-w-none w-[calc(100vw-1rem)] max-h-[95vh] overflow-y-auto p-4">
@@ -121,6 +139,15 @@ export function SalesReport({ open, onClose }: SalesReportProps) {
               <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5 h-7 text-xs px-2">
                 <Download className="w-3 h-3" />
                 Export
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowResetDialog(true)} 
+                className="gap-1.5 h-7 text-xs px-2 text-destructive hover:text-destructive"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset
               </Button>
               <Button variant="ghost" size="icon" onClick={onClose} className="h-7 w-7">
                 <X className="w-3.5 h-3.5" />
@@ -297,6 +324,24 @@ export function SalesReport({ open, onClose }: SalesReportProps) {
           </Card>
         </div>
       </DialogContent>
+
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Sales Report</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to clear all sales data? This action cannot be undone. 
+              All sales records will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReset} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Reset All Data
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
