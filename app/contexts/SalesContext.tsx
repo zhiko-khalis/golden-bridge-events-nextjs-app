@@ -74,14 +74,14 @@ export function SalesProvider({ children }: { children: ReactNode }) {
         if (event.detail?.sales) {
           setSales(prev => {
             // Only update if the new sales array is different (prevents duplicates)
-            const newSales = event.detail.sales;
+            const newSales = event.detail.sales as TicketSale[];
             // Check if arrays are actually different
             if (prev.length !== newSales.length) {
               return newSales;
             }
             // Check if any sale IDs are different
-            const prevIds = new Set(prev.map(s => s.id));
-            const newIds = new Set(newSales.map(s => s.id));
+            const prevIds = new Set(prev.map((s: TicketSale) => s.id));
+            const newIds = new Set(newSales.map((s: TicketSale) => s.id));
             if (prevIds.size !== newIds.size || 
                 !Array.from(prevIds).every(id => newIds.has(id))) {
               return newSales;
