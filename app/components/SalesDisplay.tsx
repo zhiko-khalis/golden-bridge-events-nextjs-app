@@ -15,12 +15,8 @@ export function SalesDisplay() {
 
   useEffect(() => {
     refreshSales();
-    // Refresh every 2 seconds for real-time updates
-    const interval = setInterval(() => {
-      refreshSales();
-    }, 2000);
-
-    return () => clearInterval(interval);
+    // Real-time updates are handled via SSE in SalesContext
+    // No need for polling interval
   }, [refreshSales]);
 
   useEffect(() => {

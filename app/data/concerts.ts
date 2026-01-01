@@ -3,15 +3,15 @@ import { Concert } from '../types/concert';
 export const concerts: Concert[] = [
   {
     id: '1',
-    name: 'Jazz Under the Stars',
-    artist: 'Midnight Quartet',
-    date: '2024-08-02',
-    time: '20:00',
-    venue: 'Blue Note Jazz Club',
-    location: 'Chicago, IL',
-    description: 'Experience an intimate evening of smooth jazz with the renowned Midnight Quartet. This special performance features classic jazz standards and original compositions in an elegant setting.',
-    image: 'https://images.unsplash.com/photo-1710951403141-353d4e5c7cbf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxqYXp6JTIwbXVzaWNpYW4lMjBwZXJmb3JtYW5jZXxlbnwxfHx8fDE3NjY0MTExNzl8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    genre: 'Jazz',
+    name: 'Masoud Sadeghloo Concert',
+    artist: 'Masoud Sadeghloo',
+    date: '2026-1-15',
+    time: '19:00 pm',
+    venue: 'Peshawar Hall (Hally zard) 60m Roshnbiry',
+    location: 'Kurdistan, Erbil',
+    description: 'Join us for an electrifying night of rock music! The Rolling Echoes will perform their greatest hits along with new tracks from their upcoming album. Special guest appearances throughout the evening.',
+    image: 'masoud.jpg',
+    genre: 'pop',
     ticketTypes: [
       {
         id: 't4',

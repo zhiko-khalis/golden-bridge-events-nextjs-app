@@ -41,10 +41,6 @@ export function UserDetailsForm({
       newErrors.firstName = 'First name is required';
     }
 
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
-
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -180,10 +176,10 @@ export function UserDetailsForm({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name *</Label>
+                      <Label htmlFor="lastName">Last Name</Label>
                       <Input
                         id="lastName"
-                        value={formData.lastName}
+                        value={formData.lastName || ''}
                         onChange={(e) => handleChange('lastName', e.target.value)}
                         placeholder="Khalls"
                       />

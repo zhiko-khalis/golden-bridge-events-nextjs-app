@@ -1,147 +1,144 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { TicketSale, SalesReport } from '../types/sales';
 import { Ticket } from '../types/concert';
 
 interface SalesContextType {
   sales: TicketSale[];
-  addSale: (sale: TicketSale) => void;
+  addSale: (sale: TicketSale) => Promise<void>;
+  deleteTicket: (saleId: string, ticketId: string) => Promise<void>;
   getSalesReport: () => SalesReport;
   getSalesByLocation: (location: string) => TicketSale[];
-  refreshSales: () => void;
-  clearSales: () => void;
+  refreshSales: () => Promise<void>;
+  clearSales: () => Promise<void>;
 }
 
 const SalesContext = createContext<SalesContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'ticketSales';
-
 export function SalesProvider({ children }: { children: ReactNode }) {
   const [sales, setSales] = useState<TicketSale[]>([]);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
-  // Load sales from localStorage on mount
+  // Load sales from API on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
-          const parsedSales = JSON.parse(stored);
-          // Remove duplicates based on id, saleDate, bookingReference, and adminId combination
-          const uniqueSales = parsedSales.filter((sale: TicketSale, index: number, self: TicketSale[]) => 
-            index === self.findIndex((s: TicketSale) => 
-              s.id === sale.id || 
-              (s.bookingReference === sale.bookingReference && 
-               s.saleDate === sale.saleDate &&
-               s.adminId === sale.adminId &&
-               Math.abs(new Date(s.saleDate).getTime() - new Date(sale.saleDate).getTime()) < 1000)
-            )
-          );
-          // If duplicates were found, update localStorage
-          if (uniqueSales.length !== parsedSales.length) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(uniqueSales));
-          }
-          setSales(uniqueSales);
-        } catch (e) {
-          console.error('Error parsing sales data:', e);
+    const loadSales = async () => {
+      try {
+        const response = await fetch('/api/sales');
+        if (response.ok) {
+          const data = await response.json();
+          setSales(data.sales || []);
         }
+      } catch (error) {
+        console.error('Error loading sales:', error);
       }
-    }
+    };
+
+    loadSales();
   }, []);
 
-  // Listen for storage changes (real-time updates across tabs)
+  // Set up Server-Sent Events for real-time updates
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const handleStorageChange = (e: StorageEvent) => {
-        if (e.key === STORAGE_KEY && e.newValue) {
+    if (typeof window === 'undefined') return;
+
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+
+    const connectSSE = () => {
+      try {
+        eventSource = new EventSource('/api/realtime');
+        eventSourceRef.current = eventSource;
+
+        eventSource.onopen = () => {
+          // Connection opened successfully - no action needed
+        };
+
+        eventSource.onmessage = (event) => {
           try {
-            const parsedSales = JSON.parse(e.newValue);
-            setSales(parsedSales);
+            const message = JSON.parse(event.data);
+            
+            if (message.event === 'salesUpdated' && message.data?.sales) {
+              setSales(message.data.sales);
+            } else if (message.event === 'seatsCleared') {
+              // Seats cleared, but sales remain - this is handled by SeatSelection component
+            } else if (message.event === 'connected' || message.event === 'heartbeat') {
+              // Connection established or heartbeat - no action needed
+            }
           } catch (error) {
-            console.error('Error parsing sales from storage:', error);
+            console.error('Error parsing SSE message:', error);
           }
-        }
-      };
+        };
 
-      window.addEventListener('storage', handleStorageChange);
-      return () => window.removeEventListener('storage', handleStorageChange);
+        eventSource.onerror = () => {
+          // Only handle actual connection errors
+          if (eventSource?.readyState === EventSource.CLOSED) {
+            // Connection closed, attempt to reconnect
+            if (reconnectTimeout) {
+              clearTimeout(reconnectTimeout);
+            }
+            reconnectTimeout = setTimeout(() => {
+              if (eventSourceRef.current?.readyState === EventSource.CLOSED) {
+                connectSSE();
+              }
+            }, 3000);
+          }
+        };
+      } catch (error) {
+        console.error('Error setting up SSE connection:', error);
+      }
+    };
+
+    connectSSE();
+
+    return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (eventSource) {
+        eventSource.close();
+      }
+      eventSourceRef.current = null;
+    };
+  }, []);
+
+  const addSale = useCallback(async (sale: TicketSale) => {
+    try {
+      const response = await fetch('/api/sales', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sale),
+      });
+
+      if (response.ok) {
+        // The SSE connection will automatically update the sales state
+        // But we can also refresh immediately for faster UI update
+        const data = await fetch('/api/sales');
+        if (data.ok) {
+          const salesData = await data.json();
+          setSales(salesData.sales || []);
+        }
+      } else if (response.status === 409) {
+        // Sale already exists - this is fine, just refresh
+        await refreshSales();
+      } else {
+        console.error('Error adding sale:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error adding sale:', error);
     }
   }, []);
 
-  // Listen for custom events (real-time updates in same tab)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const handleSalesUpdate = (event: CustomEvent) => {
-        if (event.detail?.sales) {
-          setSales(prev => {
-            // Only update if the new sales array is different (prevents duplicates)
-            const newSales = event.detail.sales as TicketSale[];
-            // Check if arrays are actually different
-            if (prev.length !== newSales.length) {
-              return newSales;
-            }
-            // Check if any sale IDs are different
-            const prevIds = new Set(prev.map((s: TicketSale) => s.id));
-            const newIds = new Set(newSales.map((s: TicketSale) => s.id));
-            if (prevIds.size !== newIds.size || 
-                !Array.from(prevIds).every(id => newIds.has(id))) {
-              return newSales;
-            }
-            // Arrays are the same, don't update
-            return prev;
-          });
-        }
-      };
-
-      window.addEventListener('salesUpdated', handleSalesUpdate as EventListener);
-      return () => window.removeEventListener('salesUpdated', handleSalesUpdate as EventListener);
-    }
-  }, []);
-
-  const addSale = useCallback((sale: TicketSale) => {
-    setSales(prev => {
-      // Check if sale already exists to prevent duplicates
-      const existingSale = prev.find(s => 
-        s.id === sale.id || 
-        (s.bookingReference === sale.bookingReference && 
-         s.saleDate === sale.saleDate &&
-         s.adminId === sale.adminId)
-      );
-      
-      if (existingSale) {
-        return prev; // Sale already exists, don't add duplicate
+  const refreshSales = useCallback(async () => {
+    try {
+      const response = await fetch('/api/sales');
+      if (response.ok) {
+        const data = await response.json();
+        setSales(data.sales || []);
       }
-      
-      const newSales = [...prev, sale];
-      
-      // Save to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newSales));
-        
-        // Dispatch custom event for real-time updates (only for cross-component communication)
-        // Use a small delay to ensure state is updated first
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('salesUpdated', {
-            detail: { sales: newSales }
-          }));
-        }, 0);
-      }
-      
-      return newSales;
-    });
-  }, []);
-
-  const refreshSales = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
-          const parsedSales = JSON.parse(stored);
-          setSales(parsedSales);
-        } catch (e) {
-          console.error('Error parsing sales data:', e);
-        }
-      }
+    } catch (error) {
+      console.error('Error refreshing sales:', error);
     }
   }, []);
 
@@ -194,37 +191,49 @@ export function SalesProvider({ children }: { children: ReactNode }) {
     };
   }, [sales]);
 
-  const clearSales = useCallback(() => {
-    setSales([]);
-    if (typeof window !== 'undefined') {
-      // Clear sales data
-      localStorage.removeItem(STORAGE_KEY);
-      
-      // Clear all reserved seats for all venues
-      // Find all localStorage keys that match the pattern reservedSeats_*
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('reservedSeats_')) {
-          keysToRemove.push(key);
-        }
-      }
-      
-      // Remove all reserved seat keys
-      keysToRemove.forEach(key => {
-        localStorage.removeItem(key);
+  const deleteTicket = useCallback(async (saleId: string, ticketId: string) => {
+    try {
+      const response = await fetch('/api/sales', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ saleId, ticketId }),
       });
-      
-      // Dispatch custom events to notify other components
-      window.dispatchEvent(new CustomEvent('salesUpdated', {
-        detail: { sales: [] }
-      }));
-      
-      // Dispatch event to notify seat selection components that seats have been cleared
-      // This will trigger a refresh of reserved seats in all venue layouts
-      window.dispatchEvent(new CustomEvent('seatsCleared', {
-        detail: { cleared: true }
-      }));
+
+      if (response.ok) {
+        // The SSE connection will automatically update the sales state
+        // But we can also refresh immediately for faster UI update
+        const data = await fetch('/api/sales');
+        if (data.ok) {
+          const salesData = await data.json();
+          setSales(salesData.sales || []);
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('Error deleting ticket:', errorText);
+        throw new Error(errorText || 'Failed to delete ticket');
+      }
+    } catch (error) {
+      console.error('Error deleting ticket:', error);
+      throw error;
+    }
+  }, []);
+
+  const clearSales = useCallback(async () => {
+    try {
+      const response = await fetch('/api/sales', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setSales([]);
+        // The SSE connection will notify about seats being cleared
+      } else {
+        console.error('Error clearing sales:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error clearing sales:', error);
     }
   }, []);
 
@@ -233,6 +242,7 @@ export function SalesProvider({ children }: { children: ReactNode }) {
       value={{
         sales,
         addSale,
+        deleteTicket,
         getSalesReport,
         getSalesByLocation,
         refreshSales,

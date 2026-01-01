@@ -110,30 +110,30 @@ export function PaymentForm({
     setProcessing(true);
     
     // Simulate payment processing
-    setTimeout(() => {
-      // Reserve selected seats after payment - save to localStorage permanently
+    setTimeout(async () => {
+      // Reserve selected seats after payment via API
       if (selectedSeats.length > 0) {
-        // In a real app, this would be an API call to reserve seats
-        if (typeof window !== 'undefined') {
+        try {
           const venueLayout = getVenueLayout(concert.venue);
-          const storageKey = `reservedSeats_${venueLayout.venueId}`;
+          const seatIds = selectedSeats.map(s => s.seat.id);
           
-          // Store in localStorage permanently (per venue)
-          const reserved = JSON.parse(localStorage.getItem(storageKey) || '[]');
-          selectedSeats.forEach(selectedSeat => {
-            if (!reserved.includes(selectedSeat.seat.id)) {
-              reserved.push(selectedSeat.seat.id);
-            }
+          const response = await fetch('/api/reserved-seats', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              venueId: venueLayout.venueId,
+              seatIds: seatIds
+            }),
           });
-          localStorage.setItem(storageKey, JSON.stringify(reserved));
-          
-          // Dispatch custom event to notify other components
-          window.dispatchEvent(new CustomEvent('seatsReserved', { 
-            detail: { 
-              seatIds: selectedSeats.map(s => s.seat.id),
-              venueId: venueLayout.venueId
-            } 
-          }));
+
+          if (!response.ok) {
+            console.error('Error reserving seats:', await response.text());
+          }
+          // Real-time updates will be handled via SSE
+        } catch (error) {
+          console.error('Error reserving seats:', error);
         }
       }
       

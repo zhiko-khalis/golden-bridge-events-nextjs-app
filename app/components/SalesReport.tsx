@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, Fragment } from 'react';
 import { useSales } from '../contexts/SalesContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -13,7 +13,10 @@ import {
   Ticket,
   TrendingUp,
   X,
-  RotateCcw
+  RotateCcw,
+  Trash2,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -34,8 +37,10 @@ interface SalesReportProps {
 }
 
 export function SalesReport({ open, onClose }: SalesReportProps) {
-  const { sales, getSalesReport, refreshSales, clearSales } = useSales();
+  const { sales, getSalesReport, refreshSales, clearSales, deleteTicket } = useSales();
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
+  const [deletingTicketId, setDeletingTicketId] = useState<string | null>(null);
 
   // Refresh sales when dialog opens
   useEffect(() => {
@@ -100,7 +105,7 @@ export function SalesReport({ open, onClose }: SalesReportProps) {
         concertName: sale.concertName,
         location: sale.location,
         adminLocation: sale.adminLocation,
-        adminUsername: sale.adminUsername,
+        adminUsername: sale.adminId === 'admin-1' || sale.adminUsername === 'Babak&Zana' ? 'Babak&Zana' : sale.adminUsername,
         ticketCount: sale.tickets.length,
         totalAmount: sale.totalAmount,
         saleDate: sale.saleDate,
@@ -120,10 +125,39 @@ export function SalesReport({ open, onClose }: SalesReportProps) {
     URL.revokeObjectURL(url);
   };
 
-  const handleReset = () => {
-    clearSales();
+  const handleReset = async () => {
+    await clearSales();
     setShowResetDialog(false);
-    refreshSales();
+    await refreshSales();
+  };
+
+  const toggleSaleExpansion = (saleId: string) => {
+    setExpandedSales(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(saleId)) {
+        newSet.delete(saleId);
+      } else {
+        newSet.add(saleId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleDeleteTicket = async (saleId: string, ticketId: string) => {
+    if (!confirm('Are you sure you want to delete this ticket? The seat will be made available again.')) {
+      return;
+    }
+
+    setDeletingTicketId(ticketId);
+    try {
+      await deleteTicket(saleId, ticketId);
+      await refreshSales();
+    } catch (error) {
+      console.error('Error deleting ticket:', error);
+      alert('Failed to delete ticket. Please try again.');
+    } finally {
+      setDeletingTicketId(null);
+    }
   };
 
   return (
@@ -283,6 +317,7 @@ export function SalesReport({ open, onClose }: SalesReportProps) {
                 <Table>
                   <TableHeader>
                     <TableRow className="h-8">
+                      <TableHead className="text-xs px-1.5 py-1 w-8"></TableHead>
                       <TableHead className="text-xs px-1.5 py-1">Date</TableHead>
                       <TableHead className="text-xs px-1.5 py-1">Concert</TableHead>
                       <TableHead className="text-xs px-1.5 py-1">Location</TableHead>
@@ -295,28 +330,95 @@ export function SalesReport({ open, onClose }: SalesReportProps) {
                   <TableBody>
                     {report.allSales
                       .sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
-                      .map((sale, index) => (
-                        <TableRow key={`${sale.id}-${sale.saleDate}-${sale.bookingReference}-${index}`} className="h-7">
-                          <TableCell className="text-xs px-1.5 py-1 whitespace-nowrap">
-                            {new Date(sale.saleDate).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </TableCell>
-                          <TableCell className="text-xs px-1.5 py-1 font-medium">{sale.concertName}</TableCell>
-                          <TableCell className="text-xs px-1.5 py-1">{sale.location}</TableCell>
-                          <TableCell className="text-xs px-1.5 py-1">
-                            <div>
-                              <p className="font-medium leading-tight">{sale.adminUsername}</p>
-                              <p className="text-[10px] text-muted-foreground leading-tight">{sale.adminLocation}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-xs px-1.5 py-1">{sale.tickets.length}</TableCell>
-                          <TableCell className="text-xs px-1.5 py-1">{sale.totalAmount.toLocaleString()} IQD</TableCell>
-                          <TableCell className="text-xs px-1.5 py-1">
-                            <Badge variant={sale.paymentMethod === 'cash' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0 h-4">
-                              {sale.paymentMethod}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      .map((sale, index) => {
+                        const isExpanded = expandedSales.has(sale.id);
+                        return (
+                          <Fragment key={`${sale.id}-${sale.saleDate}-${sale.bookingReference}-${index}`}>
+                            <TableRow className="h-7">
+                              <TableCell className="text-xs px-1.5 py-1">
+                                <button
+                                  onClick={() => toggleSaleExpansion(sale.id)}
+                                  className="flex items-center gap-1 hover:text-primary"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="w-3 h-3" />
+                                  ) : (
+                                    <ChevronRight className="w-3 h-3" />
+                                  )}
+                                </button>
+                              </TableCell>
+                              <TableCell className="text-xs px-1.5 py-1 whitespace-nowrap">
+                                {new Date(sale.saleDate).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </TableCell>
+                              <TableCell className="text-xs px-1.5 py-1 font-medium">{sale.concertName}</TableCell>
+                              <TableCell className="text-xs px-1.5 py-1">{sale.location}</TableCell>
+                              <TableCell className="text-xs px-1.5 py-1">
+                                <div>
+                                  <p className="font-medium leading-tight">
+                                    {sale.adminId === 'admin-1' || sale.adminUsername === 'Babak&Zana' ? 'Babak&Zana' : sale.adminUsername}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground leading-tight">{sale.adminLocation}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-xs px-1.5 py-1">{sale.tickets.length}</TableCell>
+                              <TableCell className="text-xs px-1.5 py-1">{sale.totalAmount.toLocaleString()} IQD</TableCell>
+                              <TableCell className="text-xs px-1.5 py-1">
+                                <Badge variant={sale.paymentMethod === 'cash' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0 h-4">
+                                  {sale.paymentMethod}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                            {isExpanded && (
+                              <TableRow key={`${sale.id}-tickets`}>
+                                <TableCell colSpan={8} className="px-1.5 py-2 bg-muted/30">
+                                  <div className="space-y-1">
+                                    <p className="text-xs font-medium mb-2">Tickets ({sale.tickets.length}):</p>
+                                    <div className="space-y-1">
+                                      {sale.tickets.map((ticket, ticketIndex) => (
+                                        <div
+                                          key={ticket.id || ticketIndex}
+                                          className="flex items-center justify-between text-xs bg-background p-2 rounded border"
+                                        >
+                                          <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-medium">#{ticket.ticketNumber || ticket.id}</span>
+                                              {ticket.seat && (
+                                                <span className="text-muted-foreground">
+                                                  {ticket.seat.block} {ticket.seat.row} {ticket.seat.number}
+                                                </span>
+                                              )}
+                                              <span className="text-muted-foreground">
+                                                {ticket.ticketType.name}
+                                              </span>
+                                            </div>
+                                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                                              {ticket.userDetails.firstName} {ticket.userDetails.lastName || ''} • {ticket.price.toLocaleString()} IQD
+                                            </div>
+                                          </div>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleDeleteTicket(sale.id, ticket.id)}
+                                            disabled={deletingTicketId === ticket.id}
+                                            className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            title="Delete ticket"
+                                          >
+                                            {deletingTicketId === ticket.id ? (
+                                              <div className="w-3 h-3 border-2 border-destructive border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                              <Trash2 className="w-3 h-3" />
+                                            )}
+                                          </Button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </Fragment>
+                        );
+                      })}
                   </TableBody>
                 </Table>
               </div>

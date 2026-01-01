@@ -179,7 +179,7 @@ export default function App() {
     setCurrentStep('tickets');
   };
 
-  const handleUserDetailsSubmitted = (userDetails: UserDetails, tickets: Ticket[]) => {
+  const handleUserDetailsSubmitted = async (userDetails: UserDetails, tickets: Ticket[]) => {
     setBookingData(prev => ({ ...prev, userDetails, generatedTickets: tickets }));
     
     // If admin, skip payment and go directly to tickets display
@@ -191,27 +191,33 @@ export default function App() {
         timerIntervalRef.current = null;
       }
       
-      // Reserve seats for admin (cash payment) - save to localStorage permanently
+      // Reserve seats for admin (cash payment) via API
       // Use tickets parameter which contains the seat information
       const seatsToReserve = tickets.filter(ticket => ticket.seat).map(ticket => ticket.seat!);
-      if (seatsToReserve.length > 0 && typeof window !== 'undefined') {
-        const venueLayout = getVenueLayout(bookingData.concert.venue);
-        const storageKey = `reservedSeats_${venueLayout.venueId}`;
-        
-        const reserved = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        seatsToReserve.forEach(seat => {
-          if (!reserved.includes(seat.id)) {
-            reserved.push(seat.id);
+      if (seatsToReserve.length > 0) {
+        try {
+          const venueLayout = getVenueLayout(bookingData.concert.venue);
+          const seatIds = seatsToReserve.map(s => s.id);
+          
+          const response = await fetch('/api/reserved-seats', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              venueId: venueLayout.venueId,
+              seatIds: seatIds
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error reserving seats:', errorText);
           }
-        });
-        localStorage.setItem(storageKey, JSON.stringify(reserved));
-        
-        window.dispatchEvent(new CustomEvent('seatsReserved', { 
-          detail: { 
-            seatIds: seatsToReserve.map(s => s.id),
-            venueId: venueLayout.venueId
-          } 
-        }));
+          // Real-time updates will be handled via SSE
+        } catch (error) {
+          console.error('Error reserving seats:', error);
+        }
       }
 
       // Record sale for admin (cash payment)
@@ -230,7 +236,7 @@ export default function App() {
         bookingReference: tickets[0]?.bookingReference || `BK${Date.now().toString().slice(-8)}`,
         paymentMethod: 'cash'
       };
-      addSale(sale);
+      addSale(sale).catch(err => console.error('Error adding sale:', err));
       
       setCurrentStep('tickets-display');
     } else {
@@ -267,7 +273,7 @@ export default function App() {
         bookingReference: bookingData.generatedTickets[0]?.bookingReference || `BK${Date.now().toString().slice(-8)}`,
         paymentMethod: 'online'
       };
-      addSale(sale);
+      addSale(sale).catch(err => console.error('Error adding sale:', err));
     }
 
     setCurrentStep('tickets-display');

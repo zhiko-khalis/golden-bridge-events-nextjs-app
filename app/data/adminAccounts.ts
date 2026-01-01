@@ -10,8 +10,8 @@ export interface AdminAccount {
 export const ADMIN_ACCOUNTS: AdminAccount[] = [
   {
     id: 'admin-1',
-    username: 'public',
-    password: 'public123',
+    username: 'Babak&Zana',
+    password: 'Babak&Zana123',
     location: 'Online',
     isMainAdmin: true
   },
@@ -31,16 +31,16 @@ export const ADMIN_ACCOUNTS: AdminAccount[] = [
   },
   {
     id: 'admin-4',
-    username: 'hamdel1',
-    password: 'hamdel123',
-    location: 'Las Vegas, NV',
+    username: 'hamdel-lubnani',
+    password: 'hamdel-lubnani123',
+    location: 'hamdel-lubnani',
     isMainAdmin: false
   },
   {
     id: 'admin-5',
     username: 'hamdel2',
-    password: 'hamdel123',
-    location: 'New York, NY',
+    password: 'hamdel2123',
+    location: 'hamdel2',
     isMainAdmin: false
   },
   {
@@ -52,9 +52,9 @@ export const ADMIN_ACCOUNTS: AdminAccount[] = [
   },
   {
     id: 'admin-7',
-    username: 'admin_sf',
-    password: 'sf123',
-    location: 'San Francisco, CA',
+    username: 'Laboca',
+    password: 'Laboca123',
+    location: 'Laboca',
     isMainAdmin: false
   }
 ];

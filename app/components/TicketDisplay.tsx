@@ -2,11 +2,12 @@
 
 import { useRef } from 'react';
 import { Ticket } from '../types/concert';
-import { Calendar, Clock, MapPin, User, Download } from 'lucide-react';
+import { Calendar, Clock, MapPin, Download } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from './ui/button';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import Image from 'next/image';
 
 interface TicketDisplayProps {
   ticket: Ticket;
@@ -101,9 +102,21 @@ export function TicketDisplay({ ticket, showDownloadButton = false }: TicketDisp
       {/* Blue Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
-          <div>
-            <h2 className="text-lg md:text-xl font-bold mb-1">{ticket.userDetails.firstName} {ticket.userDetails.lastName}</h2>
-            <p className="text-blue-100 text-sm">{ticket.userDetails.email}</p>
+          <div className="flex items-start gap-3">
+            {/* Company Logo */}
+            <div className="shrink-0">
+              <Image
+                src="/GOLDEN BRIDGE OFFICIAL LOGO.svg"
+                alt="Golden Bridge Events Logo"
+                width={60}
+                height={60}
+                className="object-contain"
+              />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold mb-1">{ticket.userDetails.firstName} {ticket.userDetails.lastName}</h2>
+              <p className="text-blue-100 text-sm">{ticket.userDetails.email}</p>
+            </div>
           </div>
           <div className="flex flex-col gap-1 text-right">
             <div className="flex items-center gap-1 justify-end">
@@ -125,10 +138,12 @@ export function TicketDisplay({ ticket, showDownloadButton = false }: TicketDisp
           <div className="lg:col-span-2 space-y-3">
             {/* Event Image/Description Section */}
             <div className="flex gap-3">
-              <img 
-                src={ticket.concert.image} 
+              <Image 
+                src={ticket.concert.image.startsWith('/') ? ticket.concert.image : `/${ticket.concert.image}`}
                 alt={ticket.concert.name}
-                className="w-16 h-16 rounded-lg border border-gray-300 object-cover flex-shrink-0"
+                width={64}
+                height={64}
+                className="w-16 h-16 rounded-lg border border-gray-300 object-cover shrink-0"
               />
               <div className="flex-1">
                 <h3 className="font-bold text-base mb-1">{ticket.concert.name}</h3>
@@ -150,13 +165,21 @@ export function TicketDisplay({ ticket, showDownloadButton = false }: TicketDisp
                     <p className="text-xs text-muted-foreground mb-0.5">PRICE</p>
                     <p className="font-semibold text-base">{ticket.price.toLocaleString()} IQD</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">ROW</p>
-                    <p className="font-semibold text-base">{ticket.seat.row}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">SEAT</p>
-                    <p className="font-semibold text-base">{ticket.seat.number}</p>
+                <div className="col-span-2">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">BLOCK</p>
+                        <p className="font-semibold text-base">{ticket.seat.block}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">ROW</p>
+                        <p className="font-semibold text-base">{ticket.seat.row}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">SEAT</p>
+                        <p className="font-semibold text-base">{ticket.seat.number}</p>
+                      </div>
+                    </div>
                   </div>
                   
                 </>
@@ -178,10 +201,10 @@ export function TicketDisplay({ ticket, showDownloadButton = false }: TicketDisp
                 {ticket.concert.venue} - {ticket.concert.location}
               </p>
               {/* Map Placeholder */}
-              <div className="w-full h-20 bg-gray-100 rounded-lg flex items-center justify-center relative border border-gray-200">
+              {/* <div className="w-full h-20 bg-gray-100 rounded-lg flex items-center justify-center relative border border-gray-200">
                 <MapPin className="w-6 h-6 text-blue-600 absolute" />
                 <p className="text-xs text-muted-foreground mt-10">Venue Map</p>
-              </div>
+              </div> */}
             </div>
 
             {/* Important Notes */}
@@ -243,11 +266,17 @@ export function TicketDisplay({ ticket, showDownloadButton = false }: TicketDisp
 
             {/* Branding */}
             <div className="w-full pt-2 border-t text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-0.5">
-                <User className="w-3 h-3 text-muted-foreground" />
-                <p className="font-bold text-xs">Golden Bridge</p>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Image
+                  src="/GOLDEN BRIDGE OFFICIAL LOGO00000.svg"
+                  alt="Golden Bridge Events Logo"
+                  width={34}
+                  height={34}
+                  className="object-contain"
+                />
+                <p className="font-bold text-xs">Golden Bridge Events</p>
               </div>
-              <p className="text-xs text-muted-foreground">www.goldenbridge.com</p>
+              <p className="text-xs text-muted-foreground">goldenbridgeevents.com</p>
             </div>
           </div>
         </div>

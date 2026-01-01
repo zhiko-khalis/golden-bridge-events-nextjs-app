@@ -140,79 +140,106 @@ export const talariHunarLayout: VenueLayout = {
 
 // Simple default layout for venues without specific layouts
 // This is a generic layout that can be customized per venue
+// Pricing matches the reference image exactly
 export const defaultVenueLayout: VenueLayout = {
   venueId: 'default',
   venueName: 'Standard Venue',
-  totalSeats: 500,
+  totalSeats: 708,
   blocks: [
     {
       id: 'A',
       name: 'Block A',
-      totalSeats: 250,
-      tier: 'balcony',
-      price: 75000,
+      totalSeats: 90,
+      tier: 'ground',
+      price: 75000, // Default price, but rowPrices will be used
       rows: ['A', 'B', 'C', 'D', 'E', 'F'],
       seatsPerRow: {
         'A': 15, 'B': 15, 'C': 15, 'D': 15, 'E': 15,
         'F': 15,
+      },
+      rowPrices: {
+        'A': 80000, 'B': 80000, 'C': 80000,
+        'D': 70000, 'E': 70000, 'F': 70000,
       }
     },
     {
       id: 'B',
       name: 'Block B',
-      totalSeats: 250,
-      tier: 'balcony',
-      price: 75000,
+      totalSeats: 96,
+      tier: 'ground',
+      price: 75000, // Default price, but rowPrices will be used
       rows: ['A', 'B', 'C', 'D', 'E', 'F'],
       seatsPerRow: {
         'A': 16, 'B': 16, 'C': 16, 'D': 16, 'E': 16,
         'F': 16,
+      },
+      rowPrices: {
+        'A': 80000, 'B': 80000, 'C': 80000,
+        'D': 70000, 'E': 70000, 'F': 70000,
       }
     },
     {
       id: 'C',
       name: 'Block C',
-      totalSeats: 250,
+      totalSeats: 180,
       tier: 'main',
-      price: 60000,
-      rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',],
+      price: 50000, // Default price, but rowPrices will be used
+      rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'],
       seatsPerRow: {
         'A': 15, 'B': 15, 'C': 15, 'D': 15, 'E': 15,
         'F': 15, 'G': 15, 'H': 15, 'I': 15, 'J': 15, 'K': 15, 'L': 15,
+      },
+      rowPrices: {
+        'A': 60000, 'B': 60000, 'C': 60000, 'D': 60000,
+        'E': 50000, 'F': 50000, 'G': 50000, 'H': 50000,
+        'I': 40000, 'J': 40000, 'K': 40000, 'L': 40000,
       }
     },
     {
       id: 'D',
       name: 'Block D',
-      totalSeats: 250,
+      totalSeats: 192,
       tier: 'main',
-      price: 60000,
+      price: 50000, // Default price, but rowPrices will be used
       rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'],
       seatsPerRow: {
         'A': 16, 'B': 16, 'C': 16, 'D': 16, 'E': 16,
         'F': 16, 'G': 16, 'H': 16, 'I': 16, 'J': 16, 'K': 16, 'L': 16,
+      },
+      rowPrices: {
+        'A': 60000, 'B': 60000, 'C': 60000, 'D': 60000,
+        'E': 50000, 'F': 50000, 'G': 50000, 'H': 50000,
+        'I': 40000, 'J': 40000, 'K': 40000, 'L': 40000,
       }
     },
     {
       id: 'E',
       name: 'Block E',
-      totalSeats: 250,
-      tier: 'ground',
-      price: 40000,
+      totalSeats: 75,
+      tier: 'balcony',
+      price: 35000, // Default price, but rowPrices will be used
       rows: ['A', 'B', 'C', 'D', 'E'],
       seatsPerRow: {
         'A': 15, 'B': 15, 'C': 15, 'D': 15, 'E': 15,
+      },
+      rowPrices: {
+        'A': 35000, 'B': 35000, 'C': 35000,
+        'D': 30000, 'E': 30000,
       }
     },
     {
       id: 'F',
       name: 'Block F',
-      totalSeats: 250,
-      tier: 'ground',
-      price: 26200,
+      totalSeats: 75,
+      tier: 'balcony',
+      price: 35000, // Default price, but rowPrices will be used
       rows: ['A', 'B', 'C', 'D', 'E'],
       seatsPerRow: {
         'A': 15, 'B': 15, 'C': 15, 'D': 15, 'E': 15,
+      },
+      rowPrices: {
+        'A': 35000, 'B': 35000, 'C': 35000,
+        'D': 30000, 'E': 30000,
       }
     },
 

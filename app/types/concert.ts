@@ -28,7 +28,7 @@ export interface Concert {
   
   export interface UserDetails {
     firstName: string;
-    lastName: string;
+    lastName?: string;
     email: string;
     phone: string;
   }
@@ -51,6 +51,7 @@ export interface SeatBlock {
   seatsPerRow: Record<string, number>;
   tier: 'balcony' | 'main' | 'ground';
   price: number;
+  rowPrices?: Record<string, number>; // Optional row-based pricing
 }
 
 export interface VenueLayout {

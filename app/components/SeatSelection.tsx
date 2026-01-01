@@ -19,36 +19,20 @@ interface SeatSelectionProps {
   onContinue: (selectedSeats: SelectedSeat[]) => void;
 }
 
-// Get reserved seats from localStorage and sales data
-// Seats are stored per venue to avoid conflicts
-function getReservedSeats(layout: VenueLayout, sales: any[]): Set<string> {
+// Get reserved seats from sales data
+// Seats from completed bookings are always marked as reserved
+function getReservedSeatsFromSales(sales: any[]): Set<string> {
   const reserved = new Set<string>();
-  const storageKey = `reservedSeats_${layout.venueId}`;
   
-  // Get from localStorage (permanent storage)
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
-      try {
-        const seatIds = JSON.parse(stored);
-        seatIds.forEach((id: string) => reserved.add(id));
-      } catch (e) {
-        console.error('Error parsing reserved seats:', e);
-      }
+  sales.forEach(sale => {
+    if (sale.tickets && Array.isArray(sale.tickets)) {
+      sale.tickets.forEach((ticket: any) => {
+        if (ticket.seat && ticket.seat.id) {
+          reserved.add(ticket.seat.id);
+        }
+      });
     }
-    
-    // Also extract seat IDs from sales data (tickets with seats)
-    // This ensures seats from completed bookings are always marked as reserved
-    sales.forEach(sale => {
-      if (sale.tickets && Array.isArray(sale.tickets)) {
-        sale.tickets.forEach((ticket: any) => {
-          if (ticket.seat && ticket.seat.id) {
-            reserved.add(ticket.seat.id);
-          }
-        });
-      }
-    });
-  }
+  });
   
   return reserved;
 }
@@ -60,58 +44,93 @@ export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProp
   const [selectedSeats, setSelectedSeats] = useState<Map<string, Seat>>(new Map());
   const [hoveredSeat, setHoveredSeat] = useState<Seat | null>(null);
   const [reservedSeats, setReservedSeats] = useState<Set<string>>(new Set());
+  const [apiReservedSeats, setApiReservedSeats] = useState<Set<string>>(new Set());
   const [showComingSoon, setShowComingSoon] = useState(false);
 
-  // Initialize reserved seats on mount and update when layout or sales change
+  // Load reserved seats from API
   useEffect(() => {
-    setReservedSeats(getReservedSeats(venueLayout, sales));
-  }, [venueLayout, sales]);
-
-  // Listen for storage changes, sales updates, and custom events to update reserved seats in real-time
-  useEffect(() => {
-    const storageKey = `reservedSeats_${venueLayout.venueId}`;
-    
-    const handleStorageChange = () => {
-      setReservedSeats(getReservedSeats(venueLayout, sales));
-    };
-
-    const handleSeatsReserved = (event: CustomEvent) => {
-      // Only update if the reservation is for this venue
-      if (event.detail?.venueId === venueLayout.venueId) {
-        setReservedSeats(getReservedSeats(venueLayout, sales));
+    const loadReservedSeats = async () => {
+      try {
+        const response = await fetch(`/api/reserved-seats?venueId=${venueLayout.venueId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setApiReservedSeats(new Set(data.reservedSeats || []));
+        }
+      } catch (error) {
+        console.error('Error loading reserved seats:', error);
       }
     };
 
-    const handleSalesUpdate = () => {
-      setReservedSeats(getReservedSeats(venueLayout, sales));
+    loadReservedSeats();
+  }, [venueLayout.venueId]);
+
+  // Combine API reserved seats with seats from sales
+  useEffect(() => {
+    const salesReserved = getReservedSeatsFromSales(sales);
+    const combined = new Set([...apiReservedSeats, ...salesReserved]);
+    setReservedSeats(combined);
+  }, [apiReservedSeats, sales]);
+
+  // Listen for real-time updates via SSE
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const eventSource = new EventSource('/api/realtime');
+
+    eventSource.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        
+        if (message.event === 'seatsReserved' && message.data?.venueId === venueLayout.venueId) {
+          // Refresh reserved seats from API
+          fetch(`/api/reserved-seats?venueId=${venueLayout.venueId}`)
+            .then(res => res.json())
+            .then(data => {
+              setApiReservedSeats(new Set(data.reservedSeats || []));
+            })
+            .catch(err => console.error('Error refreshing reserved seats:', err));
+        } else if (message.event === 'seatFreed' && message.data?.venueId === venueLayout.venueId) {
+          // A seat was freed, refresh reserved seats from API
+          fetch(`/api/reserved-seats?venueId=${venueLayout.venueId}&forceReload=true`)
+            .then(res => res.json())
+            .then(data => {
+              setApiReservedSeats(new Set(data.reservedSeats || []));
+            })
+            .catch(err => console.error('Error refreshing reserved seats:', err));
+        } else if (message.event === 'seatsCleared') {
+          // Clear reserved seats immediately and refresh from API with force reload
+          setApiReservedSeats(new Set());
+          // Force reload from API to ensure we get the cleared data
+          fetch(`/api/reserved-seats?venueId=${venueLayout.venueId}&forceReload=true`)
+            .then(res => res.json())
+            .then(data => {
+              setApiReservedSeats(new Set(data.reservedSeats || []));
+            })
+            .catch(err => console.error('Error refreshing reserved seats:', err));
+        } else if (message.event === 'salesUpdated') {
+          // Sales updated - the sales effect will update seats from sales
+          // If sales are empty (reset), seats from sales will be cleared
+        }
+      } catch (error) {
+        console.error('Error parsing SSE message:', error);
+      }
     };
 
-    const handleSeatsCleared = () => {
-      // When seats are cleared, immediately refresh reserved seats
-      setReservedSeats(getReservedSeats(venueLayout, sales));
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
     };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('seatsReserved', handleSeatsReserved as EventListener);
-    window.addEventListener('salesUpdated', handleSalesUpdate as EventListener);
-    window.addEventListener('seatsCleared', handleSeatsCleared as EventListener);
-    // Also check periodically for changes (since storage event only fires in other tabs)
-    const interval = setInterval(handleStorageChange, 1000);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('seatsReserved', handleSeatsReserved as EventListener);
-      window.removeEventListener('salesUpdated', handleSalesUpdate as EventListener);
-      window.removeEventListener('seatsCleared', handleSeatsCleared as EventListener);
-      clearInterval(interval);
+      eventSource.close();
     };
-  }, [venueLayout, sales]);
+  }, [venueLayout.venueId]);
 
   // Generate seat object from seat ID
   const getSeatFromId = (seatId: string): Seat => {
     const [blockId, row, number] = seatId.split('-');
     const block = venueLayout.blocks.find(b => b.id === blockId);
-    const price = block?.price || 0;
+    // Use row-based pricing if available, otherwise fall back to block price
+    const price = block?.rowPrices?.[row] || block?.price || 0;
     const isReserved = reservedSeats.has(seatId);
     
     return {
@@ -252,9 +271,9 @@ export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProp
       <div key={block.id} className="mb-8 text-center">
         <div className="mb-4">
           <h3 className="text-lg font-semibold">{block.name}</h3>
-          <p className="text-sm text-muted-foreground">
+          {/* <p className="text-sm text-muted-foreground">
             {block.totalSeats} seats • {block.tier} tier • {block.price.toLocaleString()} IQD
-          </p>
+          </p> */}
         </div>
         <div className="space-y-2">
           {block.rows.map(row => {
@@ -342,7 +361,7 @@ export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProp
                   <div>
                     <h4 className="text-md font-semibold mb-4 text-center">Front Level</h4>
                     <div className="grid grid-cols-2 gap-4">
-                      {venueLayout.blocks.filter(b => b.tier === 'balcony').map(renderBlock)}
+                      {venueLayout.blocks.filter(b => b.tier === 'ground').map(renderBlock)}
                     </div>
                   </div>
 
@@ -358,7 +377,7 @@ export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProp
                   <div>
                     <h4 className="text-md font-semibold mb-4 text-center">Upper Level (Balcony)</h4>
                     <div className="grid grid-cols-2 gap-4">
-                      {venueLayout.blocks.filter(b => b.tier === 'ground').map(renderBlock)}
+                      {venueLayout.blocks.filter(b => b.tier === 'balcony').map(renderBlock)}
                     </div>
                   </div>
                 </>
