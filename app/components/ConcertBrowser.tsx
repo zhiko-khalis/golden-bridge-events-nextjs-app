@@ -38,8 +38,7 @@ export function ConcertBrowser({ onSelectConcert }: ConcertBrowserProps) {
             {/* Text Content */}
             <div className="flex-1 w-full md:w-auto order-2 md:order-1">
               <div className="flex items-center gap-3 mb-4">
-                <Music className="w-8 h-8 md:w-10 md:h-10 text-white" />
-                <h1 className="text-2xl md:text-4xl lg:text-5xl">Golden Bridge Events</h1>
+                <h1 className="text-2xl md:text-4xl lg:text-5xl">Concert show by Zhiko</h1>
               </div>
               <p className="text-base md:text-xl text-white/70 mb-6 md:mb-8">
                 Discover and book tickets for the best live music events

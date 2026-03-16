@@ -54,6 +54,9 @@ export const talariHunarLayout: VenueLayout = {
       seatsPerRow: {
         'A': 12, 'B': 13, 'C': 14, 'D': 16, 'E': 15,
         'F': 15, 'G': 15, 'H': 15,
+      },
+      rowPrices: {
+        'H': 40000,
       }
     },
     // Middle Tier (Main Floor) - Blocks D, E, F
@@ -191,7 +194,7 @@ export const defaultVenueLayout: VenueLayout = {
       },
       rowPrices: {
         'A': 60000, 'B': 60000, 'C': 60000, 'D': 60000,
-        'E': 50000, 'F': 50000, 'G': 50000, 'H': 50000,
+        'E': 50000, 'F': 50000, 'G': 50000, 'H': 40000,
         'I': 40000, 'J': 40000, 'K': 40000, 'L': 40000,
       }
     },
@@ -223,8 +226,8 @@ export const defaultVenueLayout: VenueLayout = {
         'A': 15, 'B': 15, 'C': 15, 'D': 15, 'E': 15,
       },
       rowPrices: {
-        'A': 35000, 'B': 35000, 'C': 35000,
-        'D': 30000, 'E': 30000,
+        'A': 35000, 'B': 35000,
+        'C': 30000, 'D': 30000, 'E': 30000,
       }
     },
     {
@@ -238,8 +241,8 @@ export const defaultVenueLayout: VenueLayout = {
         'A': 15, 'B': 15, 'C': 15, 'D': 15, 'E': 15,
       },
       rowPrices: {
-        'A': 35000, 'B': 35000, 'C': 35000,
-        'D': 30000, 'E': 30000,
+        'A': 35000, 'B': 35000,
+        'C': 30000, 'D': 30000, 'E': 30000,
       }
     },
 

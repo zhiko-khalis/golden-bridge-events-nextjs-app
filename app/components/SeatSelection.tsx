@@ -11,8 +11,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSales } from '../contexts/SalesContext';
 import { TicketSale } from '../types/sales';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
-
 interface SeatSelectionProps {
   concert: Concert;
   onBack: () => void;
@@ -45,7 +43,6 @@ export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProp
   const [hoveredSeat, setHoveredSeat] = useState<Seat | null>(null);
   const [reservedSeats, setReservedSeats] = useState<Set<string>>(new Set());
   const [apiReservedSeats, setApiReservedSeats] = useState<Set<string>>(new Set());
-  const [showComingSoon, setShowComingSoon] = useState(false);
 
   // Load reserved seats from API
   useEffect(() => {
@@ -190,12 +187,6 @@ export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProp
   const handleContinue = () => {
     const seatsData = getSelectedSeatsData();
     if (seatsData.length > 0) {
-      // If user is not admin, show "Coming soon" message
-      if (!isAdmin) {
-        setShowComingSoon(true);
-        return;
-      }
-      // Admin users can proceed normally
       onContinue(seatsData);
     }
   };
@@ -488,18 +479,6 @@ export function SeatSelection({ concert, onBack, onContinue }: SeatSelectionProp
         )}
       </div>
 
-      {/* Coming Soon Dialog */}
-      <Dialog open={showComingSoon} onOpenChange={setShowComingSoon}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Coming Soon</DialogTitle>
-            <DialogDescription>
-              Online booking is currently unavailable while we prepare our database. 
-              Please check back soon!
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

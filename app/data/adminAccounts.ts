@@ -24,9 +24,9 @@ export const ADMIN_ACCOUNTS: AdminAccount[] = [
   },
   {
     id: 'admin-3',
-    username: 'today',
-    password: 'today123',
-    location: 'Roya towers',
+    username: '2nail',
+    password: '2nail123',
+    location: '2nail',
     isMainAdmin: false
   },
   {
@@ -38,16 +38,16 @@ export const ADMIN_ACCOUNTS: AdminAccount[] = [
   },
   {
     id: 'admin-5',
-    username: 'hamdel2',
-    password: 'hamdel2123',
-    location: 'hamdel2',
+    username: 'Babak',
+    password: 'Babak123',
+    location: 'Babak',
     isMainAdmin: false
   },
   {
     id: 'admin-6',
     username: 'gully-srushty',
     password: 'gully-srushty123',
-    location: 'Los Angeles, CA',
+    location: 'gully-srushty',
     isMainAdmin: false
   },
   {
@@ -55,6 +55,13 @@ export const ADMIN_ACCOUNTS: AdminAccount[] = [
     username: 'Laboca',
     password: 'Laboca123',
     location: 'Laboca',
+    isMainAdmin: false
+  },
+  {
+    id: 'admin-8',
+    username: 'Hamdel2',
+    password: 'Hamdel2123',
+    location: 'Hamdel2',
     isMainAdmin: false
   }
 ];
